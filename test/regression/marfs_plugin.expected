@@ -1,5 +1,5 @@
 # create mock MarFS namespace structure
-$ find "prefix/var/marfs/mdal-root/sec-root" -type f -o -type d | sort
+$ find "prefix/var/marfs/mdal-root/sec-root" -type f -o -type d
 prefix/var/marfs/mdal-root/sec-root
 prefix/var/marfs/mdal-root/sec-root/MDAL_reference
 prefix/var/marfs/mdal-root/sec-root/MDAL_subspaces
@@ -34,7 +34,7 @@ Total Non-Dirs:      8
 # verify index structure
 # Root should be renamed from 'sec-root' to 'marfs' (mountpoint basename)
 # MDAL_subspaces directories should be removed from final structure
-$ find "search" -type d | sort
+$ find "search" -type d
 search
 search/marfs
 search/marfs/namespace1
@@ -96,7 +96,7 @@ Total Non-Dirs:      8
 
 
 # verify structure after re-indexing
-$ find "search" -type d | sort
+$ find "search" -type d
 search
 search/marfs
 search/marfs/namespace1

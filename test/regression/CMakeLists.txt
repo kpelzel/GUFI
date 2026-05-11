@@ -219,6 +219,7 @@ function(sh_and_expected)
     add_test(NAME "${NAME}" COMMAND "${CMAKE_CURRENT_BINARY_DIR}/${NAME}.sh"
       WORKING_DIRECTORY "${TEST_WORKING_DIRECTORY}")
     set_property(TEST "${NAME}" APPEND PROPERTY LABELS "regression")
+    set_property(TEST "${NAME}" PROPERTY SKIP_RETURN_CODE 77)
   endforeach()
 endfunction()
 

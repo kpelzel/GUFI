@@ -69,11 +69,10 @@ OUTPUT="marfs_plugin.out"
 # Check if MarFS plugin is available
 if [[ ! -f "${MARFS_INDEXING_PLUGIN}" ]]; then
     echo "MarFS plugin not found at ${MARFS_INDEXING_PLUGIN}, skipping test"
-    exit 0
+    exit 77
 fi
 
 MARFS_CONFIG="marfs_test_config.xml"
-MARFS_MOUNTPOINT="/marfs"
 
 MARFS_BASE="${SRCDIR}/var/marfs"
 MARFS_DAL_ROOT="${MARFS_BASE}/dal-root"
@@ -131,7 +130,7 @@ cleanup
         setfattr -n user.myattr -v "myvalue" "${MARFS_SEC_ROOT}/MDAL_subspaces/namespace1/userfile1.txt" 2>/dev/null || true
     fi
     
-    run_no_sort "find \"${MARFS_SEC_ROOT}\" -type f -o -type d | sort"
+    run_sort "find \"${MARFS_SEC_ROOT}\" -type f -o -type d"
     
     echo
     echo "# create MarFS config XML"
@@ -156,7 +155,7 @@ cleanup
     echo "# verify index structure"
     echo "# Root should be renamed from 'sec-root' to 'marfs' (mountpoint basename)"
     echo "# MDAL_subspaces directories should be removed from final structure"
-    run_no_sort "find \"${SEARCH}\" -type d | sort"
+    run_sort "find \"${SEARCH}\" -type d"
     
     echo
     echo "# query indexed files"
@@ -189,7 +188,7 @@ cleanup
     
     echo
     echo "# verify structure after re-indexing"
-    run_no_sort "find \"${SEARCH}\" -type d | sort"
+    run_sort "find \"${SEARCH}\" -type d"
     
     echo
     echo "# test: error handling - missing config"
