@@ -86,21 +86,31 @@ project(GUFI VERSION 0.6.10 LANGUAGES C)
 find_package(Git)                     # not required
 set(VERSION_STRING "${GUFI_VERSION}") # default to CMake project version
 if ((GIT_FOUND) AND (EXISTS "${CMAKE_SOURCE_DIR}/.git"))
+  set(GIT_TAG "")
+  set(GIT_TAG_COMMIT "")
+
   # get latest tag
   execute_process(COMMAND "${GIT_EXECUTABLE}" describe --tags --abbrev=0
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     OUTPUT_VARIABLE GIT_TAG
     OUTPUT_STRIP_TRAILING_WHITESPACE
     RESULT_VARIABLE RESULT
-    COMMAND_ERROR_IS_FATAL ANY)
+    ERROR_QUIET)
 
-  # get commit of latest tag
-  execute_process(COMMAND "${GIT_EXECUTABLE}" rev-list -n 1 "${GIT_TAG}"
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-    OUTPUT_VARIABLE GIT_TAG_COMMIT
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    RESULT_VARIABLE RESULT
-    COMMAND_ERROR_IS_FATAL ANY)
+  if (RESULT EQUAL 0 AND NOT "${GIT_TAG}" STREQUAL "")
+    # get commit of latest tag
+    execute_process(COMMAND "${GIT_EXECUTABLE}" rev-list -n 1 "${GIT_TAG}"
+      WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+      OUTPUT_VARIABLE GIT_TAG_COMMIT
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      RESULT_VARIABLE RESULT
+      ERROR_QUIET)
+
+    if (NOT RESULT EQUAL 0)
+      set(GIT_TAG "")
+      set(GIT_TAG_COMMIT "")
+    endif()
+  endif()
 
   # git HEAD commit hash
   execute_process(COMMAND "${GIT_EXECUTABLE}" rev-parse HEAD
@@ -108,36 +118,41 @@ if ((GIT_FOUND) AND (EXISTS "${CMAKE_SOURCE_DIR}/.git"))
     OUTPUT_VARIABLE GIT_HEAD_COMMIT
     OUTPUT_STRIP_TRAILING_WHITESPACE
     RESULT_VARIABLE RESULT
-    COMMAND_ERROR_IS_FATAL ANY)
+    ERROR_QUIET)
 
-  # check if anything has changed
-  execute_process(COMMAND "${GIT_EXECUTABLE}" status --porcelain --untracked-files=no
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-    OUTPUT_VARIABLE GIT_HEAD_MODIFIED
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    RESULT_VARIABLE RESULT
-    COMMAND_ERROR_IS_FATAL ANY)
-  string(LENGTH "${GIT_HEAD_MODIFIED}" GIT_HEAD_MODIFIED_LEN)
-  set(GIT_HEAD_DIRTY "")
-  if (NOT GIT_HEAD_MODIFIED_LEN EQUAL "0")
-    set(GIT_HEAD_DIRTY "-dirty")
-  endif()
-
-  # if on a tag, show the tag name; otherwise show the commit
-  if (GIT_TAG_COMMIT STREQUAL GIT_HEAD_COMMIT)
-    set(VERSION_STRING "${GIT_TAG}")
-  else()
-    execute_process(COMMAND "${GIT_EXECUTABLE}" rev-parse --short "${GIT_HEAD_COMMIT}"
+  if (RESULT EQUAL 0)
+    # check if anything has changed
+    execute_process(COMMAND "${GIT_EXECUTABLE}" status --porcelain --untracked-files=no
       WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-      OUTPUT_VARIABLE GIT_HEAD_COMMIT_SHORT
+      OUTPUT_VARIABLE GIT_HEAD_MODIFIED
       OUTPUT_STRIP_TRAILING_WHITESPACE
-      COMMAND_ERROR_IS_FATAL ANY)
+      RESULT_VARIABLE RESULT
+      ERROR_QUIET)
+    string(LENGTH "${GIT_HEAD_MODIFIED}" GIT_HEAD_MODIFIED_LEN)
+    set(GIT_HEAD_DIRTY "")
+    if (RESULT EQUAL 0 AND NOT GIT_HEAD_MODIFIED_LEN EQUAL "0")
+      set(GIT_HEAD_DIRTY "-dirty")
+    endif()
 
-    set(VERSION_STRING "${GIT_HEAD_COMMIT_SHORT}")
+    # if on a tag, show the tag name; otherwise show the commit
+    if (GIT_TAG_COMMIT STREQUAL GIT_HEAD_COMMIT)
+      set(VERSION_STRING "${GIT_TAG}")
+    else()
+      execute_process(COMMAND "${GIT_EXECUTABLE}" rev-parse --short "${GIT_HEAD_COMMIT}"
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        OUTPUT_VARIABLE GIT_HEAD_COMMIT_SHORT
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE RESULT
+        ERROR_QUIET)
+
+      if (RESULT EQUAL 0)
+        set(VERSION_STRING "${GIT_HEAD_COMMIT_SHORT}")
+      endif()
+    endif()
+
+    # add "-dirty" if changes are present
+    set(VERSION_STRING "${VERSION_STRING}${GIT_HEAD_DIRTY}")
   endif()
-
-  # add "-dirty" if changes are present
-  set(VERSION_STRING "${VERSION_STRING}${GIT_HEAD_DIRTY}")
 endif()
 message(STATUS "GUFI ${VERSION_STRING}")
 
