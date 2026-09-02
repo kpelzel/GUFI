@@ -933,7 +933,7 @@ INSTALL_NUMBER(GID, gid_t, "%" STAT_gid)
  * Size of base struct plus size of stored name plus NUL terminator.
  */
 size_t struct_work_size(struct work *w) {
-    return sizeof(*w) + w->name_len + 1;
+    return sizeof(*w) + w->name_len + 1 + w->index_name_len + 1;
 }
 
 /*
@@ -943,14 +943,41 @@ size_t struct_work_size(struct work *w) {
  * Initializes the following fields:
  *   - name
  *   - name_len
+ *   - index_name
+ *   - index_name_len
+ *   - basename_len
  */
 struct work *new_work_with_name(const char *prefix, const size_t prefix_len,
                                 const char *basename, const size_t basename_len) {
-    /* +1 for path separator */
-    const size_t name_total = prefix_len + 1 + basename_len;
+    return new_work_with_index_name(prefix, prefix_len,
+                                    basename, basename_len,
+                                    prefix, prefix_len,
+                                    basename, basename_len);
+}
 
-    struct work *w = calloc(1, sizeof(*w) + name_total + 1);
+/*
+ * Allocates a new struct work on the heap with enough room to
+ * fit the given `basename` with an optional `prefix`.
+ *
+ * Initializes the following fields:
+ *   - name
+ *   - name_len
+ *   - index_name
+ *   - index_name_len
+ *   - basename_len
+ */
+struct work *new_work_with_index_name(const char *prefix, const size_t prefix_len,
+                                const char *basename, const size_t basename_len,
+                                const char *index_prefix, const size_t index_prefix_len,
+                                const char *index_basename, const size_t index_basename_len) {
+    /* +1 for path separator */
+    const size_t name_total = prefix_len ? prefix_len + 1 + basename_len : basename_len;
+    const size_t index_name_total = index_prefix_len ? index_prefix_len + 1 + index_basename_len : index_basename_len;
+
+    struct work *w = calloc(1, sizeof(*w) + name_total + 1 + index_name_total + 1);
     w->name = (char *) &w[1];
+    w->index_name = w->name + name_total + 1;
+
     if (prefix_len == 0) {
         w->name_len = SNFORMAT_S(w->name, name_total + 1, 1,
                                  basename, basename_len);
@@ -959,6 +986,16 @@ struct work *new_work_with_name(const char *prefix, const size_t prefix_len,
                                  prefix, prefix_len,
                                  "/", (size_t) 1,
                                  basename, basename_len);
+    }
+
+    if (index_prefix_len == 0) {
+        w->index_name_len = SNFORMAT_S(w->index_name, index_name_total + 1, 1,
+                                       index_basename, index_basename_len);
+    } else {
+        w->index_name_len = SNFORMAT_S(w->index_name, index_name_total + 1, 3,
+                                       index_prefix, index_prefix_len,
+                                       "/", (size_t) 1,
+                                       index_basename, index_basename_len);
     }
 
     w->basename_len = basename_len;

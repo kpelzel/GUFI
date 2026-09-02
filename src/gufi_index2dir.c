@@ -306,7 +306,7 @@ static int processdir(struct QPTPool_ctx * ctx, void * data) {
     descend(ctx, &pa->in, work, dir, 1,
             try_skip_lstat, NULL, NULL,
             processdir, NULL, NULL,
-            NULL);
+            NULL, PLUGIN_PROCESS_DIR);
 
     /* open the index db.db */
     char *dbname = NULL;

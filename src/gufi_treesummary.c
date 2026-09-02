@@ -201,7 +201,7 @@ static int processdir(QPTPool_ctx_t *ctx, void *data) {
                 descend(ctx, &pa->in, passmywork, dir, 0,
                         try_skip_stat, NULL, NULL,
                         processdir, NULL, NULL,
-                        NULL);
+                        NULL, PLUGIN_PROCESS_DIR);
 
                 /* add summary data from this directory */
                 querytsdb(passmywork->name, &sum, db, 0);

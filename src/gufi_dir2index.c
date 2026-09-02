@@ -125,7 +125,7 @@ static int processdir(QPTPool_ctx_t *ctx, void *data) {
     topath.len = SNFORMAT_S_ALLOC(&topath.data, 4,
                                   pa->index_parent.data, pa->index_parent.len,
                                   "/", (size_t) 1,
-                                  work->name + work->root_parent.len, work->name_len - work->root_parent.len, /* remove prefix */
+                                  work->index_name + work->root_parent.len, work->index_name_len - work->root_parent.len, /* remove prefix */
                                   "/" DBNAME, (size_t) 1 + DBNAME_LEN);
 
     topath.free = free;
@@ -138,24 +138,26 @@ static int processdir(QPTPool_ctx_t *ctx, void *data) {
         goto free_topath;
     }
 
-    /* remove db.db */
-    topath.len -= 1 + DBNAME_LEN;
-    topath.data[topath.len] = '\0';
+    if (process_dir == PLUGIN_PROCESS_DIR) {
+        /* remove db.db */
+        topath.len -= 1 + DBNAME_LEN;
+        topath.data[topath.len] = '\0';
 
-    /* set permissions on index directory */
-    if (chmod(topath.data, work->statuso.st_mode) != 0) {
-        const int err = errno;
-        fprintf(stderr, "Warning: Unable to set permission for \"%s\": %s (%d)\n",
-                topath.data, strerror(err), err);
+        /* set permissions on index directory */
+        if (chmod(topath.data, work->statuso.st_mode) != 0) {
+            const int err = errno;
+            fprintf(stderr, "Warning: Unable to set permission for \"%s\": %s (%d)\n",
+                    topath.data, strerror(err), err);
+        }
+
+        /* set owners on index directory */
+        if (chown(topath.data, work->statuso.st_uid, work->statuso.st_gid) != 0) {
+            const int err = errno;
+            fprintf(stderr, "Warning: Unable to set owners for \"%s\": %s (%d)\n",
+                    topath.data, strerror(err), err);
+        }
     }
-
-    /* set owners on index directory */
-    if (chown(topath.data, work->statuso.st_uid, work->statuso.st_gid) != 0) {
-        const int err = errno;
-        fprintf(stderr, "Warning: Unable to set owners for \"%s\": %s (%d)\n",
-                topath.data, strerror(err), err);
-    }
-
+    
   free_topath:
     str_free_existing(&topath);
 

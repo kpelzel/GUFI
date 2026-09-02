@@ -388,7 +388,7 @@ static int processdir(QPTPool_ctx_t *ctx, void *data) {
                 work, dir, 0,
                 try_skip_lstat, NULL, NULL,
                 processdir, process_output, &nondir_args,
-                NULL);
+                NULL, PLUGIN_PROCESS_DIR);
     }
 
     rc |= process_output(work, &ed, &nondir_args);

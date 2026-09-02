@@ -736,6 +736,8 @@ struct work {
     size_t           level;
     char            *name;                   /* points to memory located after struct work */
     size_t           name_len;               /* == strlen(name) - meaning excludes NUL! */
+    char            *index_name;             /* points to memory located after struct work */
+    size_t           index_name_len;         /* == strlen(index_name) - meaning excludes NUL! */
     size_t           basename_len;           /* can usually get through readdir */
     struct stat      statuso;
     time_t           crtime;
@@ -747,12 +749,17 @@ struct work {
     char            *fullpath;
     size_t           fullpath_len;
 
-    /* name is actually here, but not using flexible arrays */
+    /* name and index_name are actually here, but not using flexible arrays */
 };
 
 size_t struct_work_size(struct work *w);
 struct work *new_work_with_name(const char *prefix, const size_t prefix_len,
                                 const char *basename, const size_t basename_len);
+
+struct work *new_work_with_index_name(const char *prefix, const size_t prefix_len,
+                                const char *basename, const size_t basename_len,
+                                const char *index_prefix, const size_t index_prefix_len,
+                                const char *index_basename, const size_t index_basename_len);
 
 /* extra data used by entries that does not depend on data from other directories */
 struct entry_data {

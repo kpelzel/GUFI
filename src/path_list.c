@@ -99,9 +99,12 @@ ssize_t process_path_list(struct input *in, struct work *root,
         }
 
         /* if min-level == 0, do not prefix root */
-        struct work *subtree_root = new_work_with_name(in->min_level?root->name:NULL,
-                                                       in->min_level?root->name_len:0,
-                                                       line, len);
+        struct work* subtree_root = new_work_with_index_name(in->min_level?root->name:NULL,
+                                                             in->min_level?root->name_len:0,
+                                                             line, len,
+                                                             in->min_level?root->index_name:NULL,
+                                                             in->min_level?root->index_name_len:0,
+                                                             line, len);
 
         /* directory symlinks are not allowed under the root */
         if (lstat_wrapper(subtree_root->name, &subtree_root->statuso, &subtree_root->crtime,

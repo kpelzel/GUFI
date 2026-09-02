@@ -293,7 +293,7 @@ static int find_top(QPTPool_ctx_t *ctx, void *data) {
                 dir, 1,
                 try_skip_lstat, NULL, NULL,
                 find_top, NULL, NULL,
-                NULL);
+                NULL, PLUGIN_PROCESS_DIR);
         goto close_dir;
     }
 
@@ -320,7 +320,7 @@ static int find_top(QPTPool_ctx_t *ctx, void *data) {
                 dir, 1,
                 try_skip_lstat, NULL, NULL,
                 find_top, NULL, NULL,
-                NULL);
+                NULL, PLUGIN_PROCESS_DIR);
     }
 
   close_dir:
@@ -529,9 +529,12 @@ int main(int argc, char *argv[]) {
                 if (pa.same == 0) {
                     subindex = malloc(sizeof(*subindex));
                     *subindex = index;
-                    subindex->work = new_work_with_name(index.work->name, index.work->root_parent.len - has_slash,
-                                                        subtree->work->name + tree.parent_len,
-                                                        subtree->work->name_len - tree.parent_len);
+                    subindex->work = new_work_with_index_name(index.work->name, index.work->root_parent.len - has_slash,
+                                                              subtree->work->name + tree.parent_len,
+                                                              subtree->work->name_len - tree.parent_len,
+                                                              index.work->index_name, index.work->root_parent.len - has_slash,
+                                                              subtree->work->name + tree.parent_len,
+                                                              subtree->work->name_len - tree.parent_len);
                 }
 
                 rc |= compare_and_update(&pa, subtree->work->statuso.st_ino, subindex, subtree);

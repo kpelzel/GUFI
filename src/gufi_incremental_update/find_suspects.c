@@ -193,7 +193,7 @@ static int processdir(QPTPool_ctx_t *ctx, void *data) {
     descend(ctx, &pa->in, work, dir, 0,
             try_skip_lstat, wrap_work, tree,
             processdir, func, &nda,
-            &ctrs);
+            &ctrs, PLUGIN_PROCESS_DIR);
 
     const size_t id = QPTPool_get_id(ctx);
 

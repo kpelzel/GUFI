@@ -273,7 +273,7 @@ static int check_entries_count(struct PoolArgs *pa, struct work *work, size_t *c
                 dir, 1,
                 try_skip_stat, NULL, NULL,
                 find_top, NULL, NULL,
-                NULL);
+                NULL, PLUGIN_PROCESS_DIR);
 
         return 1;
     }
@@ -724,7 +724,7 @@ static int find_top(QPTPool_ctx_t *ctx, void *data) {
                 dir, 1,
                 try_skip_stat, NULL, NULL,
                 find_top, NULL, NULL,
-                NULL);
+                NULL, PLUGIN_PROCESS_DIR);
         goto close_dir;
     }
 
@@ -814,7 +814,7 @@ static int find_top(QPTPool_ctx_t *ctx, void *data) {
                 dir, 1,
                 try_skip_lstat, NULL, NULL,
                 find_top, NULL, NULL,
-                NULL);
+                NULL, PLUGIN_PROCESS_DIR);
     }
 
   free_dbname:

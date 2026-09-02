@@ -136,7 +136,7 @@ int descend(QPTPool_ctx_t *ctx,
             struct work *(*try_skip_stat3)(struct dirent *entry, struct work *work, const uint64_t *no_print_errno),
             wrap_dir_f wrap_dir, void *wrap_dir_ptr,
             QPTPool_f processdir, process_nondir_f processnondir, void *nondir_args,
-            struct descend_counters *counters) {
+            struct descend_counters *counters, plugin_dir_action *process_dir) {
     if (!work) {
         return 1;
     }
@@ -172,7 +172,8 @@ int descend(QPTPool_ctx_t *ctx,
                 continue;
             }
 
-            struct work *child = new_work_with_name(work->name, work->name_len, dir_child->d_name, len);
+            struct work *child = new_work_with_index_name(work->name, work->name_len, dir_child->d_name, len, 
+                                                          work->index_name, work->index_name_len, dir_child->d_name, len);
 
             child->statuso.st_ino = dir_child->d_ino;
 
@@ -186,7 +187,12 @@ int descend(QPTPool_ctx_t *ctx,
             child->level = next_level;
             child->root_parent = work->root_parent;
             child->root_basename_len = work->root_basename_len;
-            child->pinode = work->statuso.st_ino;
+            // set the child pinode to the current pinode if we're not including this dir in the index path
+            if (*process_dir == PLUGIN_NO_PROCESS_DIR) {
+                child->pinode = work->pinode;
+            } else {
+                child->pinode = work->statuso.st_ino;
+            }
 
             struct entry_data child_ed;
             memset(&child_ed, 0, sizeof(child_ed));
@@ -307,4 +313,5 @@ int descend(QPTPool_ctx_t *ctx,
 void decompress_work(struct work **dst, void *src) {
     decompress_struct((void **) dst, src);
     (*dst)->name = (char *) &(*dst)[1];
+    (*dst)->index_name = (*dst)->name + (*dst)->name_len + 1;
 }

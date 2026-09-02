@@ -385,95 +385,9 @@ cleanup:
     return ret;
 }
 
-// cleanup_marfs_index will go through each namespace defined in the marfs config, move it up a directory, and delete
-// the empty MDAL_subspaces that remains. It also removes any empty MDAL_subspaces that exist within the namespace as
-// well as renaming the root directory to the basename of the specified mountpoint in the marfs config
+// cleanup_marfs_index renames the root directory to the basename of the specified mountpoint in the marfs config
 static int cleanup_marfs_index(void) {
     int ret = 0;
-
-    // loop through our index namespaces and move them up a directory and delete the unecessary MDAL_subspaces
-    for (size_t i = g_state.namespaces_count; i-- > 0;) {
-        const str_t old = g_state.namespaces[i].index_namespace;
-
-        const str_t basename = get_basename(old);
-        const str_t parent = get_parent(old);
-        const str_t grandparent = get_parent(parent);
-
-        char* new_path = NULL;
-        char* parent_path = NULL;
-        char* child_subspaces = NULL;
-
-        // check to see if there is an empty MDAL_subspaces within this namespace
-        {
-            size_t child_subspaces_len =
-                old.len + 1 + MARFS_SUBSPACES_NAME_LEN + 1;  // old + "/" + MDAL_subspaces + NUL
-            child_subspaces = malloc(child_subspaces_len);
-            if (!child_subspaces) {
-                fprintf(stderr, "malloc failed for child_subspaces\n");
-                ret = -1;
-                continue;
-            }
-
-            snprintf(child_subspaces, child_subspaces_len, "%.*s/%s", (int)old.len, old.data, MARFS_SUBSPACES_NAME);
-            if (rmdir(child_subspaces) != 0) {
-                if (errno != ENOTEMPTY && errno != ENOENT) {
-                    fprintf(stderr, "rmdir('%s') failed: %s\n", child_subspaces, strerror(errno));
-                    ret = -1;
-                }
-            }
-            free(child_subspaces);
-        }
-
-        // move this namespace up a directory (into its grandparent)
-        {
-            size_t new_len = grandparent.len + 1 + basename.len + 1;  // gp + "/" + base + NUL
-            new_path = malloc(new_len);
-            if (!new_path) {
-                fprintf(stderr, "malloc failed for new_path\n");
-                ret = -1;
-                continue;
-            }
-
-            if (grandparent.len == 1 && grandparent.data[0] == '/') {
-                snprintf(new_path, new_len, "/%.*s", (int)basename.len, basename.data);
-            } else {
-                snprintf(new_path, new_len, "%.*s/%.*s", (int)grandparent.len, grandparent.data, (int)basename.len,
-                         basename.data);
-            }
-
-            if (rename(old.data, new_path) != 0) {
-                fprintf(stderr, "rename('%s' -> '%s') failed: %s\n", old.data, new_path, strerror(errno));
-                free(new_path);
-                ret = -1;
-                continue;
-            }
-            free(new_path);
-        }
-
-        // attempt to remove the old "parent" of the namespace
-        {
-            if (parent.len > 0) {
-                parent_path = malloc(parent.len + 1);
-                if (!parent_path) {
-                    fprintf(stderr, "malloc failed for parent_path\n");
-                    ret = -1;
-                    continue;
-                }
-
-                memcpy(parent_path, parent.data, parent.len);
-                parent_path[parent.len] = '\0';
-
-                if (rmdir(parent_path) != 0) {
-                    if (errno != ENOTEMPTY) {
-                        fprintf(stderr, "rmdir('%s') failed: %s\n", parent_path, strerror(errno));
-                        ret = -1;
-                    }
-                }
-            }
-
-            free(parent_path);
-        }
-    }
 
     // rename the root namespace to the marfs mountpoint from the marfs config
     const str_t rn_base = get_basename(g_state.root_namespace);
@@ -534,71 +448,6 @@ static int revert_marfs_index(void) {
 
     free(mm_path);
     free(rn_path);
-
-    // loop through our index namespaces and add a subspaces into them. then move them down into each subspace
-    for (size_t i = 0; i < g_state.namespaces_count; i++) {
-        const str_t old = g_state.namespaces[i].index_namespace;
-
-        const str_t basename = get_basename(old);
-        const str_t parent = get_parent(old);
-        const str_t grandparent = get_parent(parent);
-
-        char* indexed_path = NULL;
-        char* parent_path = NULL;
-
-        size_t new_len = grandparent.len + 1 + basename.len + 1;  // gp + "/" + base + NUL
-        indexed_path = malloc(new_len);
-        if (!indexed_path) {
-            fprintf(stderr, "malloc failed for indexed_path\n");
-            ret = -1;
-            continue;
-        }
-
-        if (grandparent.len == 1 && grandparent.data[0] == '/') {
-            snprintf(indexed_path, new_len, "/%.*s", (int)basename.len, basename.data);
-        } else {
-            snprintf(indexed_path, new_len, "%.*s/%.*s", (int)grandparent.len, grandparent.data, (int)basename.len,
-                     basename.data);
-        }
-
-        // make an empty MDAL_subspaces in this namespace's parent
-        {
-            // parent is a slice, so make a real C string before mkdir()
-            if (parent.len > 1) {
-                size_t parent_path_size = parent.len + 1;
-                parent_path = malloc(parent_path_size);
-                if (!parent_path) {
-                    fprintf(stderr, "malloc failed for parent_path\n");
-                    free(indexed_path);
-                    ret = -1;
-                    continue;
-                }
-
-                snprintf(parent_path, parent_path_size, "%.*s", (int)parent.len, parent.data);
-
-                if (mkdir(parent_path, MARFS_DIR_MODE) != 0) {
-                    if (errno != ENOTEMPTY && errno != EEXIST) {
-                        free(parent_path);
-                        free(indexed_path);
-                        continue;
-                    }
-                }
-
-                free(parent_path);
-            }
-        }
-
-        // move this namespace into the MDAL_subspaces we just made
-        {
-            if (rename(indexed_path, old.data) != 0) {
-                fprintf(stderr, "rename('%s' -> '%s') failed: %s\n", indexed_path, old.data, strerror(errno));
-                free(indexed_path);
-                continue;
-            }
-
-            free(indexed_path);
-        }
-    }
 
     return ret;
 }

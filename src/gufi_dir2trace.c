@@ -209,7 +209,7 @@ static int processdir(QPTPool_ctx_t *ctx, void *data) {
     descend(ctx, in, work, dir, 1,
             try_skip_lstat, NULL, NULL,
             processdir, process_dir?process_nondir:NULL, &nda,
-            &ctrs);
+            &ctrs, PLUGIN_PROCESS_DIR);
 
     if (process_dir) {
         if (nda.fp == stdout) {

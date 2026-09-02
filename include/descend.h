@@ -100,7 +100,7 @@ int descend(QPTPool_ctx_t *ctx,
             struct work *(*try_skip_stat3)(struct dirent *entry, struct work *work, const uint64_t *no_print_errno),
             wrap_dir_f wrap_dir, void *wrap_dir_ptr,
             QPTPool_f processdir, process_nondir_f processnondir, void *nondir_args,
-            struct descend_counters *counters);
+            struct descend_counters *counters, plugin_dir_action *process_dir);
 
 /* decompress work struct coming out of descend() */
 void decompress_work(struct work **dst, void *src);

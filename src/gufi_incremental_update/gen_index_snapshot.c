@@ -121,7 +121,7 @@ static int processdir(QPTPool_ctx_t *ctx, void *data) {
     descend(ctx, &pa->in, work, dir, 0,
             try_skip_lstat, wrap_work, index,
             processdir, NULL, NULL,
-            &ctrs);
+            &ctrs, PLUGIN_PROCESS_DIR);
 
     struct entry_data ed;
     memset(&ed, 0, sizeof(ed));

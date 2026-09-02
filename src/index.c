@@ -113,6 +113,23 @@ static int index_external(struct input *in, void *args,
     return external_insert((sqlite3 *) args, EXTERNAL_TYPE_USER_DB_NAME, pinode, filename);
 }
 
+static void remove_work_index_basename(struct work *work) {
+    if (work->basename_len >= work->index_name_len) {
+        work->index_name_len = 0;
+        work->index_name[0] = '\0';
+        return;
+    }
+
+    size_t new_len = work->index_name_len - work->basename_len;
+
+    if ((new_len > 0) && (work->index_name[new_len - 1] == '/')) {
+        new_len--;
+    }
+
+    work->index_name_len = new_len;
+    work->index_name[new_len] = '\0';
+}
+
 static int index_nondir(struct work *entry, struct entry_data *ed, void *args) {
     struct IndexNonDirArgs *inda = (struct IndexNonDirArgs *) args;
     struct input *in = inda->in;
@@ -203,6 +220,10 @@ int index_dir(str_t *topath, const int dir2index,
         *process_dir = plugins_dir_action(&in->plugins, &pcs);
     }
 
+    if (*process_dir == PLUGIN_NO_PROCESS_DIR) {
+        remove_work_index_basename(work);
+    }
+
     if (lstat_wrapper(work->name, &work->statuso, &work->crtime,
                       &work->stat_called, 1, NULL) != 0) {
         rc = 1;
@@ -210,7 +231,7 @@ int index_dir(str_t *topath, const int dir2index,
     }
 
     if (dir2index) { /* implementation leak from gufi_dir2index */
-        if (*process_dir != PLUGIN_NO_PROCESS_NO_DESCEND_DIR) {
+        if (*process_dir == PLUGIN_PROCESS_DIR) {
             /* remove db.db for now */
             topath->len -= 1 + DBNAME_LEN;
             topath->data[topath->len] = '\0';
@@ -278,19 +299,19 @@ int index_dir(str_t *topath, const int dir2index,
         plugins_ctx_init(&in->plugins, &pcs, inda.id);
     }
 
-    if (*process_dir != PLUGIN_NO_PROCESS_NO_DESCEND_DIR){
-        if (dir2index) {
+    if (*process_dir != PLUGIN_NO_PROCESS_NO_DESCEND_DIR) {
+        if (dir2index && (*process_dir == PLUGIN_PROCESS_DIR)) {
             /* remove db.db for now */
             topath->len -= 1 + DBNAME_LEN;
             topath->data[topath->len] = '\0';
         }
 
-        descend(ctx, in, work, dir, 1,
+        descend(ctx, in, work, dir, 1, 
                 try_skip_lstat, NULL, NULL,
-                processdir, (*process_dir == PLUGIN_PROCESS_DIR)?index_nondir:NULL, &inda,
-                ctrs);
+                processdir, (*process_dir == PLUGIN_PROCESS_DIR)?index_nondir:NULL, &inda, 
+                ctrs, process_dir);
 
-        if (dir2index) {
+        if (dir2index && (*process_dir == PLUGIN_PROCESS_DIR)) {
             /* restore "/db.db" (not strictly necessary) */
             topath->data[topath->len] = '/';
             topath->len += 1 + DBNAME_LEN;
